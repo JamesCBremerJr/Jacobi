@@ -58,12 +58,6 @@
 ! 
 !   jacobi_transform_backward -  apply the inverse transform
 !
-!   jacobi_transform_forward_bf - partially apply the foward transform by brute 
-!     force
-!
-!   jacobi_transform_backward_bf - partially apply the backward transform by brute
-!     force
-!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -124,7 +118,7 @@ type(jacobi_transform_data), intent(out) :: jacdata
 !      order Jacobi transform
 !
 
-double precision, allocatable :: cosvals(:,:),sinvals(:,:)
+double precision, allocatable :: cosvals(:,:),sinvals(:,:),vals00(:,:)
 double complex                :: ima
 double precision, pointer     :: arr(:)
 data ima  / (0.0d0,1.0d0) /
@@ -134,7 +128,13 @@ data ima  / (0.0d0,1.0d0) /
 da      = expdata%da
 db      = expdata%db
 krank   = expdata%krank
+
+if (expdata%nintscd .eq. 0) then
+nrec = n
+else
 nrec    = min(expdata%dmax,expdata%cd(1,1))
+endif
+
 
 
 ! allocate memory and setup the jacdata output structure 
@@ -153,6 +153,7 @@ allocate( jacdata%z1(n), jacdata%z2(n), jacdata%z3(n)  )
 ! construct the quadrature
 call jacobi_quad_mod(n,da,db,jacdata%ts,jacdata%whts)
 
+
 jacdata%dnus0 = expdata%dnus0
 do j=1,n
 jacdata%dnus(j) = j-1
@@ -161,6 +162,7 @@ end do
 jacdata%idxs = int(jacdata%ts*(n+0.0d0)/(2*pi))
 jacdata%xs   = 2*pi/(n+0.0d0)*jacdata%idxs
 jacdata%idxs = jacdata%idxs+1
+
 
 
 dmax = expdata%dmax
@@ -198,12 +200,63 @@ call zffti(n,jacdata%wsave)
 #endif
 
 ! record the values of the polynomials of low degree
+
+! call jacobi_transform_loworders(expdata%chebdata1,jacdata%n,jacdata%ts, &
+!   nrec-1,da,db,jacdata%vals0)
+
 call  jacobi_recurrence2(jacdata%n,jacdata%ts,jacdata%nrec-1,da,db,jacdata%vals0)
 
 deallocate(cosvals,sinvals)
 
 end subroutine
 
+
+subroutine jacobi_transform_loworders(chebdata,n,ts,m,da,db,vals0)
+implicit double precision (a-h,o-z)
+
+type(chebexps_data)           :: chebdata
+double precision              :: vals0(n,0:m),ts(n)
+
+! 
+!  Evaluate the polynomials of degrees 0 through
+! 
+!  Input paramters:
+!
+!  Output parameters:
+!
+! 
+!
+
+double precision, allocatable :: ab(:,:),psivals(:),avals(:)
+double precision, allocatable :: avals0(:),psivals0(:)
+
+
+!
+!  Construct each phase  functin and evaluate the polys
+!
+
+k       = chebdata%k
+dd      = min(0.025d0, 1/(n+1.0d0))
+dd      = dd * 2/pi
+dd      = log(dd)/log(2.0d0)
+nints   = ceiling(-dd)*2
+
+allocate(ab(2,nints),psivals(k*nints),avals(k*nints))
+allocate(avals0(n),psivals0(n))
+
+
+call jacobi_phase_disc(nints,ab)
+
+! build the phase functions
+do j=0,m
+dnu = j
+call jacobi_phase3(chebdata,dnu,da,db,nints,ab,avals,psivals)
+call jacobi_phase_eval3(chebdata,dnu,da,db,nints,ab,avals,psivals,n,ts,avals0,psivals0)
+vals0(:,j)   = cos(psivals0)*avals0
+end do
+deallocate(psivals0,avals0,avals,psivals,ab)
+
+end subroutine
 
 
 
@@ -236,22 +289,17 @@ iplan      = jacdata%iplan
 jacdata%z3 = 0
 
 
+
 do j=1,krank
 jacdata%z1 = jacdata%r(:,j)*x
-
-
 #ifdef USE_FFTW
 call dfftw_execute_dft(iplan, jacdata%z1, jacdata%z2)
 jacdata%z3  = jacdata%z3 + jacdata%z2(jacdata%idxs)*jacdata%expvals(:,j)
 #else
 call zfftb(n,jacdata%z1,jacdata%wsave)
-
-
 jacdata%z3  = jacdata%z3 + jacdata%z1(jacdata%idxs)*jacdata%expvals(:,j)
-
 #endif
 end do
-
 
 y = (real(jacdata%z3) + matmul(jacdata%vals0,x(1:nrec)))*sqrt(jacdata%whts) 
 
@@ -345,90 +393,6 @@ y(1:nrec) = y(1:nrec) + matmul(transpose(jacdata%vals0),x2)
 
 end subroutine
 
-
-
-subroutine jacobi_transform_forward_bf(da,db,k,n,ts,whts,x,y)
-implicit double precision (a-h,o-z)
-
-double precision              :: ts(n),whts(n),x(n),y(n)
-!
-!  If A is the (n,n) matrix representing the forward Jacobi transform, apply
-!  the (k,n) submatrix A(1:k,1:n) to a user-specified vector by brute force.
-!
-!  Input parameters:
-!    (da,db) - the parameters for the Jacobi transform
-!    k - the number of rows of the submatrix of the transform to apply
-!    n - the order of the transform
-!    (ts,whts) - the nodes and weights of the appropriate
-!       n-point Gauss-Jacobi quadrture rule
-!    x - the input vector
-!
-!  Output parameters:
-!    y - the output vector
-!
-
-double precision, allocatable :: vals(:,:)
-
-!
-!  Compute the matrix of values using the recurrence relations
-!
-
- allocate(vals(k,n))
-
-
-do i=1,k
-call jacobi_recurrence(n-1,da,db,ts(i),vals(i,:))
-end do
-
-do i=1,k
-vals(i,:) = vals(i,:)*sqrt(whts(i))
-end do
-
-y(1:k) = matmul(vals,x)
-
-deallocate(vals)
-
-end subroutine
-
-
-
-subroutine jacobi_transform_backward_bf(da,db,k,n,ts,whts,x,y)
-implicit double precision (a-h,o-z)
-
-double precision              :: ts(n),whts(n),x(n),y(n)
-!
-!  If A is the (n,n) matrix representing the backward Jacobi transform, apply
-!  the (k,n) submatrix A(1:k,1:n) to a user-specified vector by brute force.
-!
-!  Input parameters:
-!    (da,db) - the parameters for the Jacobi transform
-!    k - the number of rows of the submatrix of the transform to apply
-!    n - the order of the transform
-!    (ts,whts) - the nodes and weights of the appropriate
-!       n-point Gauss-Jacobi quadrture rule
-!    x - the input vector
-!
-!  Output parameters:
-!    y - the output vector
-!
-
-double precision, allocatable :: vals(:,:)
-
-!
-!  Compute the matrix of values using the recurrence relations
-!
-
-allocate(vals(k,n))
-do i=1,n
-call jacobi_recurrence(k-1,da,db,ts(i),vals(:,i))
-end do
-
-
-y(1:k) = matmul(vals,x*sqrt(whts))
-
-deallocate(vals)
-
-end subroutine
 
 
 
@@ -564,57 +528,57 @@ end subroutine
 
 
 
-subroutine jacobi_recurrence(n,da,db,t,vals)
-implicit double precision (a-h,o-z)
-integer                    :: n
-double precision           :: t,da,db
-double precision           :: vals(0:n)
+! subroutine jacobi_recurrence(n,da,db,t,vals)
+! implicit double precision (a-h,o-z)
+! integer                    :: n
+! double precision           :: t,da,db
+! double precision           :: vals(0:n)
 
-!
-!  Evaluate the functions (1) for dnu=0,1,...,n at a specified point t
-!  using the well-known recurrence relations.
-!
+! !
+! !  Evaluate the functions (1) for dnu=0,1,...,n at a specified point t
+! !  using the well-known recurrence relations.
+! !
 
-dnu = n
-x   = cos(t)
+! dnu = n
+! x   = cos(t)
 
-vals(0) = sqrt(0.2d1**(-0.1d1-0.1d1*da-0.1d1*db)*(0.1d1+da+db))*sqrt(Gamma(0.1d1  &
-+da+db)/(Gamma(0.1d1+da)*Gamma(0.1d1+db)))
+! vals(0) = sqrt(0.2d1**(-0.1d1-0.1d1*da-0.1d1*db)*(0.1d1+da+db))*sqrt(Gamma(0.1d1  &
+! +da+db)/(Gamma(0.1d1+da)*Gamma(0.1d1+db)))
 
-vals(1) = (sqrt(0.2d1**(-0.1d1-0.1d1*da-0.1d1*db)*(0.3d1+da+db))*(da-0.1d1*db+(2  &
-+da+db)*x)*sqrt(Gamma(0.2d1+da+db)/(Gamma(0.2d1+da)*Gamma(0.2d1+  &
-db))))/0.2d1
+! vals(1) = (sqrt(0.2d1**(-0.1d1-0.1d1*da-0.1d1*db)*(0.3d1+da+db))*(da-0.1d1*db+(2  &
+! +da+db)*x)*sqrt(Gamma(0.2d1+da+db)/(Gamma(0.2d1+da)*Gamma(0.2d1+  &
+! db))))/0.2d1
 
 
-do i=2,n
+! do i=2,n
 
-dd1 = (sqrt((-0.1d1+da+db+0.2d1*i)*(0.1d1+da+db+0.2d1*i))*(0.4d1*(-1+da+  &
-db)*i*x+0.4d1*i**2*x+(da+db)*(da-0.1d1*db+(-2+da+  &
-db)*x)))/(0.2d1*Sqrt((i*(da+i)*(db+i))/(da+db+i))*(da+db+i)*(-2+da+db+0.2d1*i))
+! dd1 = (sqrt((-0.1d1+da+db+0.2d1*i)*(0.1d1+da+db+0.2d1*i))*(0.4d1*(-1+da+  &
+! db)*i*x+0.4d1*i**2*x+(da+db)*(da-0.1d1*db+(-2+da+  &
+! db)*x)))/(0.2d1*Sqrt((i*(da+i)*(db+i))/(da+db+i))*(da+db+i)*(-2+da+db+0.2d1*i))
 
-dd2 =(2**((da+db)/0.2d1)*(-1+da+i)*(-1+db+i)*(da+db+0.2d1*i))/(i*(da+db+  &
-i)*Sqrt(-3+da+db+0.2d1*i)*(-2+da+db+0.2d1*i)*Sqrt((2**(da+db)*(-1+da+  &
-i)*(da+i)*(-1+db+i)*(db+i))/((-1+i)*i*(-1+da+db+i)*(da+db+i)*(1+da+db+&
-0.2d1*i))))
+! dd2 =(2**((da+db)/0.2d1)*(-1+da+i)*(-1+db+i)*(da+db+0.2d1*i))/(i*(da+db+  &
+! i)*Sqrt(-3+da+db+0.2d1*i)*(-2+da+db+0.2d1*i)*Sqrt((2**(da+db)*(-1+da+  &
+! i)*(da+i)*(-1+db+i)*(db+i))/((-1+i)*i*(-1+da+db+i)*(da+db+i)*(1+da+db+&
+! 0.2d1*i))))
 
-vals(i) = dd1*vals(i-1) - dd2*vals(i-2)
+! vals(i) = dd1*vals(i-1) - dd2*vals(i-2)
 
-end do
+! end do
 
-!
-!  Scale by r(t) now
-!
+! !
+! !  Scale by r(t) now
+! !
 
-rval = 2.0d0**((1+da+db)/2) * cos(t/2)**(db+0.5d0) * sin(t/2)**(da+0.5d0)
-vals = vals * rval
+! rval = 2.0d0**((1+da+db)/2) * cos(t/2)**(db+0.5d0) * sin(t/2)**(da+0.5d0)
+! vals = vals * rval
 
-!
-!  Wronskian normalization.
-!
+! !
+! !  Wronskian normalization.
+! !
 
-! vals = vals * sqrt(pi / (2*dnu+da+db+1))
+! ! vals = vals * sqrt(pi / (2*dnu+da+db+1))
 
-end subroutine
+! end subroutine
 
 
 
@@ -681,8 +645,6 @@ dsize = dsize + 16 * ( size(jacdata%wsave) )
 dsize = dsize/(1024.0d0*1024.0d0)
 
 end subroutine
-
-
 
 
 end module

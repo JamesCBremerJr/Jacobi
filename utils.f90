@@ -200,10 +200,10 @@ integer,intent(in) :: a
 character(len=*), intent(in) :: str
 
 print *,str
-print "(8(2x,I8))",a
+print "(8(2x,I9))",a
 
 write (13,*) str
-write (13,"(8(2x,I8))") a
+write (13,"(8(2x,I9))") a
 
 end subroutine
 
@@ -1131,7 +1131,7 @@ endif
 ncount          = ncount+1
 idigits(ncount) = mod(m,10)
 m               = m /10
-isep           = isep+1
+isep            = isep+1
 
 end do
 

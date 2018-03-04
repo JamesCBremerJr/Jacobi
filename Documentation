@@ -2,8 +2,9 @@
 
 This directory contains a package for rapidly evaluating solutions of Jacobi's
 differential equation, computing Gauss-Jacobi quadrature rules and applying the
-Jacobi transform and its inverse.  It is released under version 3 of the GPL.  
-See the file  LICENSE for details.
+Jacobi transform and its inverse.  The code this package is released under version 
+3 of the GPL.  See the file  LICENSE for details.
+
 
 The code proper is self-contained, with one notable exception:  our routines 
 for the Jacobi transform (which can be found in the file jacobi_transform.f90) 

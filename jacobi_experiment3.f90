@@ -18,7 +18,7 @@ implicit double precision (a-h,o-z)
 
 
 i1 = 5
-i2 = 24
+i2 = 27
 
 call comparison_slevinsky()
 call error_test(i1,i2)
@@ -209,7 +209,17 @@ iffactor = 1
 ifeval   = 0
 
 if (n .lt. 100)   n = 100
-if (n .gt. 10**8) n = 10**8
+
+if (i2 .eq. 20) then
+themax = 10**6
+elseif (i2 .eq. 24) then
+themax = 10**7
+else
+themax = 10**8
+endif
+
+
+n = max(themax,n)
 
 dmax     = n
 dnu      = n

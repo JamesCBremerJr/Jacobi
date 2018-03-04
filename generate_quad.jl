@@ -4,12 +4,14 @@ ntimes = 1
 fid    = open("quad.dat","w")
 
 i1 = 6
-i2 = 24
+i2 = 27
 
 if  i2 == 20
 themax = 10^6
-else
+elseif i2 == 24
 themax = 10^7
+else
+themax = 10^8
 end
 
 (xs,whts) = gaussjacobi(2^10,.5,.25);

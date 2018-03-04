@@ -208,5 +208,3 @@ clean:
 	rm -f table*.tex
 	rm -f jacobi_experiment?
 
-
-

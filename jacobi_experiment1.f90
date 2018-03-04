@@ -14,7 +14,7 @@ use jacobi_exp
 implicit double precision (a-h,o-z)
 
 k1 = 6
-k2 = 24
+k2 = 27
 call  asymptotic_table(k1,k2)  ! tableasym.tex and tablesize.tex
 call  graphs(k1,k2)            ! construct the two graphs
 
@@ -46,7 +46,14 @@ da       = 0.49d0
 db       = 0.35d0
 eps      = 1.0d-12
 
+if (k2 .eq. 20) then
+themax = 10.0d0**6
+elseif (k2 .eq. 24) then
 themax = 10.0d0**7
+else
+themax = 10.0d0**8
+endif
+
 
 do k=k1,k2
 dmax     = 2**k

@@ -215,13 +215,14 @@ allocate(amatr(2*n+2*nextra,m))
 
 amatr = 0
 
-!amatr(1:n,       :) = expdata%psivals
-!amatr(n+1:2*n,   :) = expdata%avals
+! amatr(1:n,       :) = expdata%psivals
+! amatr(n+1:2*n,   :) = expdata%avals
 !amatr(2*n+1:3*n, :) = expdata%cosvals
 !amatr(3*n+1:4*n, :) = expdata%sinvals
 
 amatr(1:n, :)     = expdata%cosvals
 amatr(n+1:2*n, :) = expdata%sinvals
+
 dnumax = expdata%cd(2,expdata%nintscd)
 
 do i=1,nextra
@@ -229,13 +230,16 @@ t0                       = ts0(i)
 wht0                     = twhts0(i)
 do j=1,m
 dnu                      = expdata%dnus(j)/dnumax
-!amatr(4*n+i,j)           = cos(dnu*t0)*sqrt(wht0)
-!amatr(4*n+i+nextra,j)    = sin(dnu*t0)*sqrt(wht0)
 
-amatr(2*n+i,j)           = cos(dnu*t0)
-!*sqrt(wht0)
-amatr(2*n+i+nextra,j)    = sin(dnu*t0)
-!*sqrt(wht0)
+! amatr(4*n+i,j)           = cos(dnu*t0)*sqrt(wht0)
+! amatr(4*n+i+nextra,j)    = sin(dnu*t0)*sqrt(wht0)
+
+amatr(2*n+i,j)           = cos(dnu*t0)*sqrt(wht0)
+amatr(2*n+i+nextra,j)    = sin(dnu*t0)*sqrt(wht0)
+
+! amatr(2*n+i,j)           = cos(dnu*t0)
+! amatr(2*n+i+nextra,j)    = sin(dnu*t0)
+
 
 end do
 end do
@@ -267,7 +271,7 @@ end do
 !
 
 
-!!!! No factorization
+! No factorization
 ! allocate(ipivs(m))
 ! krank = m
 ! do i=1,m
@@ -636,7 +640,11 @@ allocate(cd0(2,1000))
 
 nintscd        =  0
 
-
+if (dmax .lt. 27) then
+nintscd = 0
+allocate(cd(2,0))
+return
+endif
 
 
 nintscd        =  nintscd+1

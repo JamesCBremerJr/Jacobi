@@ -17,13 +17,14 @@ double precision, allocatable :: x(:),y(:),x0(:),y0(:),xx(:),yy(:),xx2(:)
 double precision, allocatable :: dnus(:),times(:,:),errs(:),dsizes(:)
 integer, allocatable          :: kranks(:)
 
+
 pi       = acos(-1.0d0)
 ima      = (0.0d0,1.0d0)
 ntimes   = 1
 da       = 0.25d0
 db       = 0.33d0
 
-i1       = 4
+i1       = 5
 i2       = 18
 
 allocate(times(5,i1:i2),errs(i1:i2),dsizes(i1:i2),kranks(i1:i2),xx(i1:i2))
@@ -48,6 +49,7 @@ call jacobi_expansion(eps,iffactor,dmax,da,db,expdata)
 call jacobi_transform_prepare(expdata,n,jacdata)
 call elapsed(t2)
 
+
 times(1,i) = t2-t1
 kranks(i)  = expdata%krank
 
@@ -60,8 +62,6 @@ dsizes(i) = dsize
 call prini("krank = ",expdata%krank)
 call prin2("prepare time = ",t2-t1)
 
-
-
 ! construct an input vector and allocate memory for the output
 allocate(x(n),y0(n),y(n),x0(n))
 
@@ -72,7 +72,6 @@ dd = j
 x(j) = sqrt(-2*log(dd1))*cos(2*pi*dd2)/dd**2
 end do
 
-
 call elapsed(t1)
 call jacobi_transform_forward(jacdata,x,y)
 call elapsed(t2)
@@ -81,19 +80,12 @@ dtime = (t2-t1)
 call prin2("forward apply time = ",dtime)
 times(2,i) = dtime
 
-! call jacobi_transform_forward_bf(da,db,n,n,jacdata%ts,jacdata%whts,x,y0)
-! print *,norm2(y-y0)
-
 
 call elapsed(t1)
 call jacobi_transform_backward(jacdata,y,x0)
 call elapsed(t2)
 call prin2("backward  apply time = ",t2-t1)
 times(3,i) = t2-t1
-
-
-! call jacobi_transform_backward_bf(da,db,n,n,jacdata%ts,jacdata%whts,y,x)
-! print *,norm2(x-x0)
 
 
 

@@ -169,6 +169,8 @@ p    = dnu + (da+db+1)/2
 !  and its first two derivatives at the point pi/8 and solving forward and
 !  backwards from there
 !
+
+
 if (dnu .gt. 100) then
 
 int0 = nints/2-2
@@ -258,6 +260,7 @@ c3 = avals(k,int)
 end do
 
 endif
+
 
 !
 !  Construct the phase function via integration 
@@ -787,6 +790,7 @@ data  piovertwo / 1.57079632679489661923132169163975144d0 /
 
 p    = dnu + (da+db+1)/2
 
+
 !
 !  Handle the case of large p by evaluating square of the amplitude function 
 !  and its first two derivatives at the point pi/8 and solving forward and
@@ -961,3 +965,384 @@ avals   = sqrt(avals)
 
 
 end subroutine
+
+
+
+
+subroutine jacobi_phase3(chebdata,dnu,da,db,nints,ab,avals,psivals)
+use chebyshev
+implicit double precision (a-h,o-z)
+
+double precision, intent(in)              :: dnu,da,db
+type(chebexps_data)                       :: chebdata
+double precision, intent(in)              :: ab(2,nints)
+double precision, intent(out)             :: avals(chebdata%k,nints)
+double precision, intent(out)             :: psivals(chebdata%k,nints)
+
+!
+!  Construct the phase and amplitude functions for specified values
+!  of the parameters.  This routine is a thin wrapper around jacobi_phase_solve.
+!
+!  Input parameters:
+!    chebdata - a chebexps_data structure containing the information needed to
+!       manipulate function represented by k-point Chebyshev expansions
+!    (dnu,da,db) - the values of the parameters in Jacobi's equation
+!    (nints,ab) - the discretization scheme returned by jacobi_phase_disc
+!
+!  Output parameters:
+!    avals - an array of lengh k * nints specifying the values or coefficients
+!      of the amplitude function
+!    psivals - an array of length k*nints specifying the values of coefficients
+!      of the modified phase function
+!
+
+
+data  pi        / 3.14159265358979323846264338327950288d0 /
+data  piovertwo / 1.57079632679489661923132169163975144d0 /
+
+
+call jacobi_phase_solve3(chebdata%k,nints,ab,chebdata%xs,                       &
+  chebdata%aintr,chebdata%aintr2,chebdata%aintr3,                              &
+  chebdata%aintl,chebdata%aintl2,chebdata%aintl3,chebdata%u,                   &
+  dnu,da,db,psivals,avals)
+
+end subroutine
+
+
+
+subroutine jacobi_phase_solve3(k,nints,ab,xscheb,aintr,aintr2,aintr3, &
+  aintl,aintl2,aintl3,u,dnu,da,db,psivals,avals)
+use chebyshev
+implicit double precision (a-h,o-z)
+
+integer                        :: nints
+double precision               :: ab(2,nints),avals(k,nints),psivals(k,nints),u(k,k)
+double precision               :: xscheb(k),aintr(k,k),aintr2(k,k),aintr3(k,k)
+double precision               :: aintl(k,k),aintl2(k,k),aintl3(k,k)
+
+!
+!  Construct the nonoscillatory phase and amplitude functions for Jacobi's differential
+!  equation.  These functions are represented via piecewise Chebyshev expansions given
+!  on a collection of intervals. 
+!
+
+double precision      :: valsmp(k,nints),valsmpp(k,nints),alphap(k,nints)
+
+data  pi        / 3.14159265358979323846264338327950288d0 /
+data  piovertwo / 1.57079632679489661923132169163975144d0 /
+
+p    = dnu + (da+db+1)/2
+
+!
+!  Handle the case of large p by evaluating square of the amplitude function 
+!  and its first two derivatives at the point pi/8 and solving forward and
+!  backwards from there
+!
+
+
+if (dnu .gt. 100) then
+
+int0 = nints/2-2
+call jacobi_asym_amp(dnu,da,db,c3_0,c2_0,c1_0)
+
+!
+!  Solve the ODE backwards, starting from pi/8
+!
+
+c1 = c1_0
+c2 = c2_0
+c3 = c3_0
+
+do int=int0,1,-1
+a = ab(1,int)
+b = ab(2,int)
+call jacobi_solve_back(dnu,da,db,a,b,k,xscheb,aintl,aintl2,aintl3, &
+  aintr,aintr2,aintr3,c1,c2,c3,avals(1,int),valsmp(1,int),valsmpp(1,int))
+c1 = valsmpp(1,int)
+c2 = valsmp(1,int)
+c3 = avals(1,int)
+end do
+
+!
+!  Solve it going forward from pi/8
+!
+
+c1 = c1_0
+c2 = c2_0
+c3 = c3_0
+
+do int=int0+1,nints
+a = ab(1,int)
+b = ab(2,int)
+call jacobi_solve_forward(dnu,da,db,a,b,k,xscheb,aintl,aintl2,aintl3, &
+  aintr,aintr2,aintr3,c1,c2,c3,avals(1,int),valsmp(1,int),valsmpp(1,int))
+c1 = valsmpp(k,int)
+c2 = valsmp(k,int)
+c3 = avals(k,int)
+end do
+
+else
+
+!
+!  For p < 90 use Taylor expansions to evaluate M and its first two derivatives
+!  at pi/64
+!
+
+int0 = nints/2-5
+t    = ab(2,int0)
+call jacobi_taylor_m(dnu,da,db,t,c3_0,c2_0,c1_0)
+
+!
+!  Solve the ODE backwards
+!
+
+c1 = c1_0
+c2 = c2_0
+c3 = c3_0
+
+do int=int0,1,-1
+a = ab(1,int)
+b = ab(2,int)
+call jacobi_solve_back(dnu,da,db,a,b,k,xscheb,aintl,aintl2,aintl3, &
+  aintr,aintr2,aintr3,c1,c2,c3,avals(1,int),valsmp(1,int),valsmpp(1,int))
+c1 = valsmpp(1,int)
+c2 = valsmp(1,int)
+c3 = avals(1,int)
+end do
+
+!
+!  Solve it going forward from pi/8
+!
+
+c1 = c1_0
+c2 = c2_0
+c3 = c3_0
+
+do int=int0+1,nints
+a = ab(1,int)
+b = ab(2,int)
+call jacobi_solve_forward(dnu,da,db,a,b,k,xscheb,aintl,aintl2,aintl3, &
+  aintr,aintr2,aintr3,c1,c2,c3,avals(1,int),valsmp(1,int),valsmpp(1,int))
+c1 = valsmpp(k,int)
+c2 = valsmp(k,int)
+c3 = avals(k,int)
+end do
+
+endif
+
+
+!
+!  Construct the phase function via integration 
+!
+
+alphap = 1.0d0/avals
+c1     = 0
+do int=1,nints
+a              = ab(1,int)
+b              = ab(2,int)
+psivals(:,int) = c1 + matmul((b-a)/2*aintl,alphap(:,int))
+c1             = psivals(k,int)
+end do
+
+!
+!  Translate the phase appropriately using Taylor and asymptotic expansions near 0
+! 
+
+a2     = 0
+if (dnu .le. 100) then
+t = 0.025d0
+
+call jacobi_taylor_p(dnu,da,db,t,valp,derp,der2p)
+call jacobi_taylor_q(dnu,da,db,t,valq,derq,der2q)
+call chebpw_eval(nints,ab,k,xscheb,psivals,t,psival)
+a2 = atan2(valq,valp)-psival
+
+else 
+
+t    = 1/dnu
+call jacobi_asym_pder(dnu,da,db,t,valp,derp)
+
+y  = valp
+yp = derp
+
+call chebpw_eval(nints,ab,k,xscheb,avals,t,valm)
+call chebpw_eval(nints,ab,k,xscheb,valsmp,t,valmp)
+call chebpw_eval(nints,ab,k,xscheb,valsmpp,t,valmpp)
+call chebpw_eval(nints,ab,k,xscheb,psivals,t,psival)
+
+apval   = 1/valm
+appval  = -valmp/valm**2
+apppval = 2*valmp/valm**3 - valmpp/valm**2
+
+c1 = y*sqrt(apval)
+c2 = yp/sqrt(apval)+y*appval/(2*apval**(1.5d0))
+
+a1  = sqrt(c1**2+c2**2)
+a2  = atan2(c1,c2)
+
+if(a2 .gt. pi) then
+a1 = -a1
+a2 = a2-pi
+endif
+
+if(a2 .le. 0) then
+a1 = -a1
+a2 = a2 + pi
+endif
+a2 = a2 - pi/2
+a2 = a2 - psival
+
+endif
+
+
+psivals = psivals + a2
+avals   = sqrt(avals)
+
+!
+!  Subtract dnu*t and divide by dnu
+!
+
+! do int=1,nints
+! a = ab(1,int)
+! b = ab(2,int)
+!  psivals(:,int) = psivals(:,int)/dnu    -  (xscheb*(b-a)/2+(b+a)/2)
+! end do
+ 
+
+
+! 
+!  Convert to coefficient expansions
+!
+
+! do int=1,nints
+! psivals(:,int) = matmul(u,psivals(:,int))
+! avals(:,int)   = matmul(u,avals(:,int))
+! end do
+
+end subroutine
+
+
+subroutine jacobi_phase_eval3(chebdata,dnu,da,db,nints,ab,avals,psivals,nts,ts,avals0,psivals0)
+use chebyshev
+implicit double precision (a-h,o-z)
+
+type(chebexps_data)                         :: chebdata
+integer, intent(in)                         :: nints,nts
+double precision, intent(in)                :: ab(2,nints),ts(nts)
+double precision, intent(in)                :: avals(chebdata%k,nints)
+double precision, intent(in)                :: psivals(chebdata%k,nints)
+double precision, intent(out)               :: avals0(nts),psivals0(nts)
+
+!  
+!  Evaluate the phase and amplitude functions associated with the data
+!  generated by the jacobi_phase subroutine at a user-specified collection
+!  of points in the interval (0,\pi).
+!
+!  IMPORTANT WARNING: the list of points must be sorted in INCREASING ORDER
+!
+!  Input parameters:
+!    chebdata - a chebexps_data structure containing the information needed to
+!       manipulate function represented by k-point Chebyshev expansions
+!    (nints,ab) - the discretization scheme for the phase functions
+!    (avals,psivals) - the representations of the phase and amplitude functions 
+!       generated by jacobi_phase
+!
+!    nts - the number of points at which to evaluate the Jacobi function
+!     of the first kind
+!    ts - a list of the points at which to evaluate the Jacobi function;
+!     THESE MUST BE IN INCREASING ORDER
+!
+!  Output parameters:
+!    avals - a user-supplied vector of length nts which will contain
+!     the values of the amplitude function on return
+!    psivals - a user-supplied vector of length nts which will contain
+!     the values of the phase function on return
+!    
+
+
+double precision, allocatable :: ts0(:)
+data  pi        / 3.14159265358979323846264338327950288d0 /
+data  piovertwo / 1.57079632679489661923132169163975144d0 /
+data  log2      / 0.69314718055994530941723212145817657d0 /
+
+p    = dnu + (da+db+1)/2
+eps0 = epsilon(0.0d0)
+
+! L^2 normalization
+dconst  = sqrt( (2*dnu+da+db+1)/pi )
+
+! Wronskian normalization
+!dconst = 1
+
+int0 = 1
+k    = chebdata%k
+
+do j=1,nts
+t   = ts(j)
+
+! u   = (t - 1.0d-7)/(pi/2-1.0d-7)
+! ii  = log(u)/log2
+! int = (phase%nints+ii)
+
+do int=int0,nints-1
+b = ab(2,int)
+if (t .lt. b) exit
+end do
+
+
+a    = ab(1,int)
+b    = ab(2,int)
+int0 = int
+
+
+! call chebeval(a,b,k,chebdata%xs,avals(:,int),t,aval)
+! call chebeval(a,b,k,chebdata%xs,psivals(:,int),t,psival)
+
+xx   = (2*t - (b+a) ) /(b-a)
+sum1 = 0
+sum2 = 0
+sum3 = 0
+
+
+dd1 = 1.0d0
+do i=1,k
+dd=1.0d0
+if (i .eq. 1 .OR. i .eq. k) dd = 0.5d0
+diff = xx-chebdata%xs(i)
+!
+!  Handle the case in which the target node coincides with one of
+!  the Chebyshev nodes.
+!
+
+if(abs(diff) .le. eps0) then
+aval   = avals(i,int)
+psival = psivals(i,int)
+goto 1000
+endif
+
+!
+!  Otherwise, construct the sums.
+!
+
+dd   = (dd1*dd)/diff
+dd1  = - dd1
+sum1 = sum1+dd*avals(i,int)
+sum2 = sum2+dd
+sum3 = sum3+dd*psivals(i,int)
+dd   = - dd
+end do
+
+aval    = sum1/sum2
+psival  = sum3/sum2
+
+1000 continue
+
+psivals0(j) = psival
+avals0(j)   = aval * dconst
+end do
+
+end subroutine
+
+
+
+
