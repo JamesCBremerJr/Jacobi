@@ -1,0 +1,57 @@
+--------------------------------------------------------------------------------------
+
+This is a  package for rapidly evaluating solutions of Jacobi's
+differential equation, computing Gauss-Jacobi quadrature rules and applying the
+Jacobi transform and its inverse.  It is released under version 
+3 of the GPL.  See the file  LICENSE for details.
+
+
+The code proper is self-contained, with one notable exception:  our routines for the Jacobi transform (which can be found in the file jacobi_transform.f90) use an external library to apply the fast Fourier transform.  As written,  it can use either the FFTW3 library (www.fftw.org) or the double precision version of Paul Swartztrauber's  FFTPACK  library (www.netlib.org/fftpack/).  There is a compile time flag in jacobi_transform.f90 which determines which package is used.    The Jacobi transform routines run about twice as fast with FFTW3 as with FFTPACK.
+
+Some of our test code makes use of the subroutines of Amos for evaluating Bessel functions.  The version which is part of the  SLATEC library (http://www.netlib.org/slatec/) is included with this package.
+
+The algorithms implemented here are described in the preprint
+
+    James Bremer and Haizhao Yang,  "Fast algorithms for Jacobi polynomials 
+    via nonoscillatory phase functions."  arxiv:?????.???
+
+The code for the numerical experiments described in that preprint are included
+with this package and can be run via the commands
+
+     make run_experiment1
+     make run_experiment2
+     make run_experiment3
+
+They compare the algorithms here with Julia packages "FastTransforms.jl"
+by Slevinsky, et. al. and "FastGaussQuadrature.jl" by Towsend, et. al.  To
+run them the user must obtain Julia and these packages.
+
+------------------------------------------------------------------------------------------
+
+
+The following files comprise the package.  Most of them have an associated test code which can be compiled and executed using the included makefile.
+
+1.  The file amos.f contains Amos' code for evaluting Bessel functions.  This is the version which is distributed with the SLATEC library.
+        
+2.  The files gspiv.f and orthom.f contain Fortran 77 codes written by Vladimir Rokhlin for performing pivoted Gram-Schmidt with reorthogonalization and for inverting square matrices, respectively.
+
+3.  The file utils.f90 contains small utility codes for printing, sorting and the like.
+
+4.  The file idecomp.f90 contains code for producing interpolative decompositions.
+
+5.  The file chebyshev.f90 contains code for representing functions via piecewise Chebyshev expansions.
+
+6.  The file jacobi_asym.f90 contains code for evaluating Jacobi polynomials and the related amplitude function using various asymptotic expansions.
+
+7.  The file jacobi_taylor.f90 contains code for evaluating the Jacobi functions of the first and second kinds of relatively small orders via series expansions.
+
+8.  The file jacobi_phase.f90 contains code for numerically calculating the nonoscillatory  phase functions representing the solutions of Jacobi's differential equation.
+
+9.  The file jacobi_quad.f90 contains code for rapidly constructing Jacobi quadrature rules.
+
+10.  The file jacobi_exp.f90 contains code for constructing expansions of the phase functions for Jacobi's differential equation which vary with degree as well as with the argument.  
+
+11.  The file jacobi_transform.f90 contains code for rapidly applying the Jacobi transform and its inverse given an expansion produced by the jacobi_exp code.
+
+12.  The files jacobi_experiment?.f90 contain code for performing the experiments described in the preprint mentioned above.  In particular, these codes produce the LaTeX source for all of the tables which appear in that manuscript as well as the python source code which generates the figures.
+
