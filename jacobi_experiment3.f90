@@ -16,8 +16,9 @@ use jacobi_transform
 
 implicit double precision (a-h,o-z)
 
+
 i1 = 5
-i2 = 27
+i2 = 24
 
 call comparison_slevinsky()
 call error_test(i1,i2)
@@ -312,13 +313,12 @@ ntimes   = 1
 iw = 20
 open(iw,FILE='transform.dat')
 
+
 read(iw,*) da
 read(iw,*) db
 read(iw,*) m
 
-print *,da,db,m
-
-allocate(times(5,m),errs(m),dnus(m),kranks(m))
+allocate(times(10,m),errs(m),dnus(m),kranks(m))
 
 do i=1,m
 
@@ -487,6 +487,10 @@ end do
 
 close(iw)
 
+iw = 200
+open(iw,FILE='save')
+write (iw,*) da,db,m,dnus,times
+close(iw)
 
 
 !!!!!!!!!!! a LaTeX table
