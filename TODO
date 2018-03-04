@@ -1,0 +1,6 @@
+1.  Only store phase functions on the interval (0,\pi/2) and use two
+phase functions for evaluation?  This will improve accuracy near the point pi.
+
+2.  Write a better interpolative decomposition code; perhaps we should
+also not explicitly store the identity matrix in R and exploit the its
+presence in the jacobi_transform code.
