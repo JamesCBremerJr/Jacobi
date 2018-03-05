@@ -4,7 +4,7 @@ ntimes = 1
 fid    = open("quad.dat","w")
 
 i1 = 6
-i2 = 27
+i2 = 24
 
 if  i2 == 20
 themax = 10^6

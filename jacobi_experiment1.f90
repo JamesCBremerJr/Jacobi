@@ -14,7 +14,7 @@ use jacobi_exp
 implicit double precision (a-h,o-z)
 
 k1 = 6
-k2 = 27
+k2 = 24
 call  asymptotic_table(k1,k2)  ! tableasym.tex and tablesize.tex
 call  graphs(k1,k2)            ! construct the two graphs
 

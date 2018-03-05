@@ -13,7 +13,7 @@ y = icjt(x,da,db);
 # now time the code
 
 i1       = 3
-i2       = 27
+i2       = 24
 
 themin   = 10
 

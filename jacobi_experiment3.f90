@@ -18,10 +18,10 @@ implicit double precision (a-h,o-z)
 
 
 i1 = 5
-i2 = 27
+i2 = 24
 
-call comparison_slevinsky()
-call error_test(i1,i2)
+! call comparison_slevinsky()
+! call error_test(i1,i2)
 call rank_test(i1,i2)
 
 end program
@@ -55,23 +55,23 @@ allocate(dnus4(i1:i2),times4(5,i1:i2),errs4(i1:i2),dsizes4(i1:i2),kranks4(i1:i2)
 da      = 0.49d0
 db      = 0.20d0
 decay   = 1.0d0
-call comp_rank(i1,i2,da,db,kranks1,dsizes1)
+call comp_rank(i1,i2,da,db,dnus1,kranks1,dsizes1)
 
 da      =-0.25d0
 db      = 0.00d0
 decay   = 1.0d0
-call comp_rank(i1,i2,da,db,kranks2,dsizes2)
+call comp_rank(i1,i2,da,db,dnus2,kranks2,dsizes2)
 
 da      =-0.40d0
 db      =-0.40d0
 decay   = 1.0d0
-call comp_rank(i1,i2,da,db,kranks3,dsizes3)
+call comp_rank(i1,i2,da,db,dnus3,kranks3,dsizes3)
 
 
 da      = 0.25d0
 db      =-0.20d0
 decay   = 1.0d0
-call comp_rank(i1,i2,da,db,kranks4,dsizes4)
+call comp_rank(i1,i2,da,db,dnus4,kranks4,dsizes4)
 
 
 allocate(dkranks1(i1:i2))
@@ -84,16 +84,21 @@ dkranks2 = kranks2(i1:i2)
 dkranks3 = kranks3(i1:i2)
 dkranks4 = kranks4(i1:i2)
 
+
+
+
 ! build the graph
 iw2 = 21
 open(iw2,FILE='graph_transranks.py')
 call pyplot_begin(iw2,istatus)
 m = i2-i1+1
 
+
 call pyplot_add_function(istatus,1,"a= 0.49, b= 0.20",m,dnus1,dkranks1)
 call pyplot_add_function(istatus,2,"a=-0.25, b= 0.00",m,dnus2,dkranks2)
 call pyplot_add_function(istatus,2,"a=-0.40, b=-0.40",m,dnus2,dkranks3)
 call pyplot_add_function(istatus,2,"a= 0.25, b=-0.20",m,dnus2,dkranks4)
+
 call pyplot_xlogscale(istatus)
 call pyplot_ylogscale(istatus)
 call pyplot_xlabel(istatus,"N")
@@ -294,7 +299,7 @@ end subroutine
 
 
 
-subroutine comp_rank(i1,i2,da,db,kranks,dsizes)
+subroutine comp_rank(i1,i2,da,db,dnus,kranks,dsizes)
 use utils
 use chebyshev
 use idecomp
@@ -345,6 +350,8 @@ dnus(i)  = dnu
 call prini("n = ",n)
 call jacobi_expansion(eps,iffactor,dmax,da,db,expdata)
 kranks(i)  = expdata%krank
+dnus(i)    = dnu
+
 call jacobi_expansion_size(expdata,dsizes(i))
 call prini("krank = ",expdata%krank)
 end do
