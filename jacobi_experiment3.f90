@@ -211,15 +211,15 @@ ifeval   = 0
 if (n .lt. 100)   n = 100
 
 if (i2 .eq. 20) then
-themax = 10**6
+mmax = 10**6
 elseif (i2 .eq. 24) then
-themax = 10**7
+mmax = 10**7
 else
-themax = 10**8
+mmax = 10**8
 endif
 
 
-n = max(themax,n)
+n = max(mmax,n)
 
 dmax     = n
 dnu      = n

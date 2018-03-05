@@ -32,15 +32,16 @@ double precision, allocatable  :: r(:,:)
 !
 !
 
-! double precision, allocatable :: c(:,:),q(:,:),rnorms(:),work(:),rinv(:,:),r0(:,:)
-! integer, allocatable          :: idxs(:)
+double precision, allocatable :: c(:,:),q(:,:),rnorms(:),work(:),rinv(:,:),r0(:,:),r2(:,:)
+integer, allocatable          :: idxs(:)
 
-double precision, allocatable :: q(:,:),rnorms(:),c(:,:),rinv(:,:),work(:),r2(:,:),r0(:,:)
+
 
 n   = size(a,1)
 m   = size(a,2)
 
 allocate(rnorms(n+m+1000),q(n,m),ipivs(m))
+
 
 q = a
 call gspiv(q,n,m,eps,rnorms,ipivs,krank)
