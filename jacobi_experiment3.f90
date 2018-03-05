@@ -51,26 +51,27 @@ allocate(dnus3(i1:i2),times3(5,i1:i2),errs3(i1:i2),dsizes3(i1:i2),kranks3(i1:i2)
 allocate(dnus4(i1:i2),times4(5,i1:i2),errs4(i1:i2),dsizes4(i1:i2),kranks4(i1:i2))
 
 
+
 da      = 0.49d0
 db      = 0.20d0
 decay   = 1.0d0
-call comp_err(decay,i1,i2,da,db,times1,dnus1,errs1,dsizes1,kranks1)
+call comp_rank(i1,i2,da,db,kranks1,dsizes1)
 
 da      =-0.25d0
 db      = 0.00d0
 decay   = 1.0d0
-call comp_err(decay,i1,i2,da,db,times2,dnus2,errs2,dsizes2,kranks2)
+call comp_rank(i1,i2,da,db,kranks2,dsizes2)
 
 da      =-0.40d0
 db      =-0.40d0
 decay   = 1.0d0
-call comp_err(decay,i1,i2,da,db,times3,dnus3,errs3,dsizes3,kranks3)
+call comp_rank(i1,i2,da,db,kranks3,dsizes3)
 
 
 da      = 0.25d0
 db      =-0.20d0
 decay   = 1.0d0
-call comp_err(decay,i1,i2,da,db,times4,dnus4,errs4,dsizes4,kranks4)
+call comp_rank(i1,i2,da,db,kranks4,dsizes4)
 
 
 allocate(dkranks1(i1:i2))
@@ -218,8 +219,7 @@ else
 mmax = 10**8
 endif
 
-
-n = max(mmax,n)
+n = min(mmax,n)
 
 dmax     = n
 dnu      = n
@@ -286,6 +286,67 @@ errs(i) = maxval(abs(x-x0))
 
 deallocate(x,y,x0,y0)
 call jacobi_transform_destroy(jacdata)
+end do
+
+
+
+end subroutine
+
+
+
+subroutine comp_rank(i1,i2,da,db,kranks,dsizes)
+use utils
+use chebyshev
+use idecomp
+use jacobi_exp
+use jacobi_transform
+implicit double precision (a-h,o-z)
+
+
+double precision  :: dnus(i1:i2),times(5,i1:i2),errs(i1:i2),dsizes(i1:i2)
+integer           :: kranks(i1:i2)
+
+double precision, allocatable :: vals(:,:),ts(:),whts(:)
+type(jacobi_expansion_data)   :: expdata
+type(jacobi_transform_data)   :: jacdata
+double precision, allocatable :: x(:),y(:),x0(:),y0(:),xx(:),yy(:),xx2(:)
+
+pi       = acos(-1.0d0)
+ima      = (0.0d0,1.0d0)
+ntimes   = 1
+
+
+
+do i=i1,i2
+
+eps      = 1.0d-11
+n        = 2**i
+iffactor = 1
+ifeval   = 0
+
+
+if (n .lt. 100)   n = 100
+
+if (i2 .eq. 20) then
+mmax = 10**6
+elseif (i2 .eq. 24) then
+mmax = 10**7
+else
+mmax = 10**8
+endif
+
+
+n = min(mmax,n)
+
+
+dmax     = n
+dnu      = n
+dnus(i)  = dnu
+call prini("n = ",n)
+call jacobi_expansion(eps,iffactor,dmax,da,db,expdata)
+kranks(i)  = expdata%krank
+call jacobi_expansion_size(expdata,dsizes(i))
+call prini("krank = ",expdata%krank)
 end do
 
 

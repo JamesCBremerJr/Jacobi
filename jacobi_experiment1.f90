@@ -18,7 +18,7 @@ k2 = 27
 call  asymptotic_table(k1,k2)  ! tableasym.tex and tablesize.tex
 call  graphs(k1,k2)            ! construct the two graphs
 
-k1 = 3
+k1 = 5
 k2 = 15
 call  recurrence_table(k1,k2)  ! tablerec.tex
 
